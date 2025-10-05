@@ -84,5 +84,28 @@ namespace SysAcadMejorado.Controllers
                 alumno = nuevoAlumno
             });
         }
+        // PUT: api/alumnos/12345
+        [HttpPut("{nroLegajo}")]
+        public IActionResult ActualizarAlumno(int nroLegajo, [FromBody] Alumno alumnoActualizado)
+        {
+            // En una versión real, buscaríamos y actualizaríamos en la base de datos
+            return Ok(new
+            {
+                mensaje = $"Alumno con legajo {nroLegajo} actualizado exitosamente",
+                alumno = alumnoActualizado
+            });
+        }
+
+        // DELETE: api/alumnos/12345
+        [HttpDelete("{nroLegajo}")]
+        public IActionResult EliminarAlumno(int nroLegajo)
+        {
+            // En una versión real, eliminaríamos de la base de datos
+            return Ok(new
+            {
+                mensaje = $"Alumno con legajo {nroLegajo} eliminado exitosamente",
+                nroLegajo = nroLegajo
+            });
+        }
     }
 }
