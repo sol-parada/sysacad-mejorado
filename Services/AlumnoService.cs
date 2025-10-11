@@ -1,82 +1,144 @@
 ﻿using SysacadMejorado.Models;
+using Microsoft.EntityFrameworkCore;
 using SysAcadMejorado.Models;
-using System.Xml.Linq;
 
 namespace SysAcadMejorado.Services
 {
     public class AlumnoService
     {
-        private readonly List<Alumno> _alumnos = new List<Alumno>
-        {
-            new Alumno
-            {
-                Apellido = "García",
-                Nombre = "Ana",
-                NroDocumento = "40123456",
-                TipoDocumento = TipoDocumento.DNI,
-                FechaNacimiento = new DateTime(2000, 5, 15),
-                Sexo = "Femenino",
-                NroLegajo = 12345,
-                FechaIngreso = new DateTime(2023, 3, 1)
-            }
-        };
+        private readonly AppDbContext _context;
 
-        // GET: Todos los alumnos
-        public List<Alumno> ObtenerTodos()
+        // INYECCIÓN DE DEPENDENCIAS - Entity Framework
+        public AlumnoService(AppDbContext context)
         {
-            return _alumnos;
+            _context = context;
         }
 
-        // GET: Alumno por legajo
-        public Alumno? ObtenerPorLegajo(int legajo)
+        // GET: Todos los alumnos (ASINCRÓNICO)
+        public async Task<List<Alumno>> ObtenerTodos()
         {
-            return _alumnos.FirstOrDefault(a => a.NroLegajo == legajo);
+            return await _context.Alumnos.ToListAsync();
         }
 
-        // POST: Crear alumno
-        public void CrearAlumno(Alumno alumno)
+        // GET: Alumno por legajo (ASINCRÓNICO)
+        public async Task<Alumno?> ObtenerPorLegajo(int legajo)
         {
-            // VALIDACIÓN: No puede existir otro con mismo legajo
-            if (ObtenerPorLegajo(alumno.NroLegajo) != null)
-            {
-                throw new Exception($"Ya existe un alumno con el legajo {alumno.NroLegajo}");
-            }
-
-            // VALIDACIÓN: Debe ser mayor de 16 años
-            if (DateTime.Now.Year - alumno.FechaNacimiento.Year < 16)
-            {
-                throw new Exception("El alumno debe tener al menos 16 años");
-            }
-
-            _alumnos.Add(alumno);
+            return await _context.Alumnos
+                .FirstOrDefaultAsync(a => a.NroLegajo == legajo);
         }
 
-        // PUT: Actualizar alumno
-        public void ActualizarAlumno(int legajo, Alumno alumnoActualizado)
+        // GET: Alumno por ID (ASINCRÓNICO)
+        public async Task<Alumno?> ObtenerPorId(int id)
         {
-            var alumnoExistente = ObtenerPorLegajo(legajo);
-            if (alumnoExistente == null)
-            {
-                throw new Exception($"No se encontró alumno con legajo {legajo}");
-            }
-
-            // Actualizar propiedades
-            alumnoExistente.Apellido = alumnoActualizado.Apellido;
-            alumnoExistente.Nombre = alumnoActualizado.Nombre;
-            alumnoExistente.NroDocumento = alumnoActualizado.NroDocumento;
-            // ... más propiedades
+            return await _context.Alumnos
+                .FirstOrDefaultAsync(a => a.Id == id);
         }
 
-        // DELETE: Eliminar alumno
-        public void EliminarAlumno(int legajo)
+        // POST: Crear alumno (ASINCRÓNICO)
+        public async Task<Alumno> CrearAlumno(Alumno alumno)
         {
-            var alumno = ObtenerPorLegajo(legajo);
-            if (alumno == null)
+            try
             {
-                throw new Exception($"No se encontró alumno con legajo {legajo}");
-            }
+                // VALIDACIÓN: No puede existir otro con mismo legajo
+                var alumnoExistente = await ObtenerPorLegajo(alumno.NroLegajo);
+                if (alumnoExistente != null)
+                {
+                    throw new Exception($"Ya existe un alumno con el legajo {alumno.NroLegajo}");
+                }
 
-            _alumnos.Remove(alumno);
+                // VALIDACIÓN: Debe ser mayor de 16 años
+                if (DateTime.Now.Year - alumno.FechaNacimiento.Year < 16)
+                {
+                    throw new Exception("El alumno debe tener al menos 16 años");
+                }
+
+                // AGREGAR Y GUARDAR EN BD
+                _context.Alumnos.Add(alumno);
+                await _context.SaveChangesAsync();
+
+                return alumno;
+            }
+            catch (DbUpdateException dbEx)
+            {
+                // CAPTURAR ERROR DE BASE DE DATOS COMPLETO
+                throw new Exception($"Error de base de datos: {dbEx.InnerException?.Message ?? dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+        }
+
+        // PUT: Actualizar alumno (ASINCRÓNICO)
+        public async Task<Alumno> ActualizarAlumno(int id, Alumno alumnoActualizado)
+        {
+            try
+            {
+                var alumnoExistente = await ObtenerPorId(id);
+                if (alumnoExistente == null)
+                {
+                    throw new Exception($"No se encontró alumno con ID {id}");
+                }
+
+                // VALIDACIÓN: Si cambia el legajo, verificar que no exista otro
+                if (alumnoExistente.NroLegajo != alumnoActualizado.NroLegajo)
+                {
+                    var alumnoConMismoLegajo = await ObtenerPorLegajo(alumnoActualizado.NroLegajo);
+                    if (alumnoConMismoLegajo != null)
+                    {
+                        throw new Exception($"Ya existe otro alumno con el legajo {alumnoActualizado.NroLegajo}");
+                    }
+                }
+
+                // ACTUALIZAR PROPIEDADES
+                alumnoExistente.Apellido = alumnoActualizado.Apellido;
+                alumnoExistente.Nombre = alumnoActualizado.Nombre;
+                alumnoExistente.NroDocumento = alumnoActualizado.NroDocumento;
+                alumnoExistente.TipoDocumento = alumnoActualizado.TipoDocumento;
+                alumnoExistente.FechaNacimiento = alumnoActualizado.FechaNacimiento;
+                alumnoExistente.Sexo = alumnoActualizado.Sexo;
+                alumnoExistente.NroLegajo = alumnoActualizado.NroLegajo;
+                alumnoExistente.FechaIngreso = alumnoActualizado.FechaIngreso;
+
+                // GUARDAR CAMBIOS EN BD
+                await _context.SaveChangesAsync();
+
+                return alumnoExistente;
+            }
+            catch (DbUpdateException dbEx)
+            {
+                throw new Exception($"Error de base de datos al actualizar: {dbEx.InnerException?.Message ?? dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
+        }
+
+        // DELETE: Eliminar alumno (ASINCRÓNICO)
+        public async Task<bool> EliminarAlumno(int id)
+        {
+            try
+            {
+                var alumno = await ObtenerPorId(id);
+                if (alumno == null)
+                {
+                    throw new Exception($"No se encontró alumno con ID {id}");
+                }
+
+                _context.Alumnos.Remove(alumno);
+                await _context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (DbUpdateException dbEx)
+            {
+                throw new Exception($"Error de base de datos al eliminar: {dbEx.InnerException?.Message ?? dbEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error: {ex.Message}");
+            }
         }
     }
 }
