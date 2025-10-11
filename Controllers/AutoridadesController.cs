@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SysAcadMejorado.Models;
+using SysAcadMejorado.Services;
 
 namespace SysAcadMejorado.Controllers
 {
@@ -7,50 +8,93 @@ namespace SysAcadMejorado.Controllers
     [Route("api/[controller]")]
     public class AutoridadesController : ControllerBase
     {
-        private static List<Autoridad> _autoridades = new List<Autoridad>
+        private readonly AutoridadService _autoridadService;
+
+        public AutoridadesController()
         {
-            new Autoridad
-            {
-                Nombre = "Ing. Juan Pérez",
-                Cargo = "Decano",
-                Telefono = "0260-7654321",
-                Email = "decano@frut.utn.edu.ar"
-            }
-        };
+            _autoridadService = new AutoridadService();
+        }
 
         // GET: api/autoridades
         [HttpGet]
         public IActionResult GetAutoridades()
         {
-            return Ok(_autoridades);
+            var autoridades = _autoridadService.ObtenerTodas();
+            return Ok(autoridades);
+        }
+
+        // GET: api/autoridades/1
+        [HttpGet("{id}")]
+        public IActionResult GetAutoridad(int id)
+        {
+            try
+            {
+                var autoridad = _autoridadService.ObtenerPorId(id);
+                if (autoridad == null)
+                    return NotFound();
+
+                return Ok(autoridad);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // POST: api/autoridades
         [HttpPost]
         public IActionResult CrearAutoridad([FromBody] Autoridad nuevaAutoridad)
         {
-            _autoridades.Add(nuevaAutoridad);
-            return Ok(new { mensaje = "Autoridad creada exitosamente", autoridad = nuevaAutoridad });
+            try
+            {
+                _autoridadService.CrearAutoridad(nuevaAutoridad);
+                return Ok(new
+                {
+                    mensaje = "Autoridad creada exitosamente",
+                    autoridad = nuevaAutoridad
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
+
         // PUT: api/autoridades/1
         [HttpPut("{id}")]
         public IActionResult ActualizarAutoridad(int id, [FromBody] Autoridad autoridadActualizada)
         {
-            return Ok(new
+            try
             {
-                mensaje = $"Autoridad con ID {id} actualizada exitosamente",
-                autoridad = autoridadActualizada
-            });
+                _autoridadService.ActualizarAutoridad(id, autoridadActualizada);
+                return Ok(new
+                {
+                    mensaje = $"Autoridad con ID {id} actualizada exitosamente",
+                    autoridad = autoridadActualizada
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // DELETE: api/autoridades/1
         [HttpDelete("{id}")]
         public IActionResult EliminarAutoridad(int id)
         {
-            return Ok(new
+            try
             {
-                mensaje = $"Autoridad con ID {id} eliminada exitosamente"
-            });
+                _autoridadService.EliminarAutoridad(id);
+                return Ok(new
+                {
+                    mensaje = $"Autoridad con ID {id} eliminada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
         }
     }
 }
