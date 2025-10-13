@@ -1,136 +1,144 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SysAcadMejorado.Models;
 
 namespace SysAcadMejorado.Services
 {
     public class MateriaService
     {
-        private static readonly List<Materia> _materias = new List<Materia>
+        private readonly AppDbContext _context;
+
+        public MateriaService(AppDbContext context)
         {
-            new Materia
-            {
-                Nombre = "Programación I",
-                Codigo = "PROG1",
-                Observacion = "Materia inicial de programación"
-            },
-            new Materia
-            {
-                Nombre = "Base de Datos",
-                Codigo = "BDD",
-                Observacion = "Fundamentos de bases de datos"
-            },
-            new Materia
-            {
-                Nombre = "Sistemas Operativos",
-                Codigo = "SO",
-                Observacion = "Administración de sistemas operativos"
-            }
-        };
+            _context = context;
+        }
 
         // GET: Todas las materias
-        public List<Materia> ObtenerTodas()
+        public async Task<List<Materia>> ObtenerTodas()
         {
-            return _materias;
+            return await _context.Materias.ToListAsync();
         }
 
-        // GET: Materia por código
-        public Materia? ObtenerPorCodigo(string codigo)
+        // GET: Materia por código - ✅ ARREGLADO para PostgreSQL
+        public async Task<Materia?> ObtenerPorCodigo(string codigo)
         {
-            return _materias.FirstOrDefault(m =>
-                m.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase));
+            return await _context.Materias
+                .Where(m => m.Codigo.ToLower() == codigo.ToLower())
+                .FirstOrDefaultAsync();
         }
 
-        // GET: Buscar materias por nombre
-        public List<Materia> BuscarPorNombre(string texto)
+        // GET: Buscar materias por nombre - ✅ ARREGLADO para PostgreSQL  
+        public async Task<List<Materia>> BuscarPorNombre(string texto)
         {
-            return _materias.Where(m =>
-                m.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await _context.Materias
+                .Where(m => m.Nombre.ToLower().Contains(texto.ToLower()))
+                .ToListAsync();
         }
 
         // POST: Crear materia
-        public void CrearMateria(Materia materia)
+        public async Task<Materia> CrearMateria(Materia materia)
         {
-            // Validación: Código no puede estar vacío
             if (string.IsNullOrWhiteSpace(materia.Codigo))
-            {
                 throw new Exception("El código de la materia no puede estar vacío");
-            }
 
-            // Validación: Nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(materia.Nombre))
-            {
                 throw new Exception("El nombre de la materia no puede estar vacío");
-            }
 
-            // Validación: Código debe ser único
-            if (ObtenerPorCodigo(materia.Codigo) != null)
-            {
+            var materiaExistente = await ObtenerPorCodigo(materia.Codigo);
+            if (materiaExistente != null)
                 throw new Exception($"Ya existe una materia con el código {materia.Codigo}");
-            }
 
-            // Validación: Código debe tener formato válido (ej: LETRAS+NÚMEROS)
             if (!EsCodigoValido(materia.Codigo))
-            {
                 throw new Exception("El código de la materia debe contener solo letras y números");
-            }
 
-            _materias.Add(materia);
+            _context.Materias.Add(materia);
+            await _context.SaveChangesAsync();
+
+            return materia;
         }
 
         // PUT: Actualizar materia
-        public void ActualizarMateria(string codigo, Materia materiaActualizada)
+        public async Task<Materia> ActualizarMateria(string codigo, Materia materiaActualizada)
         {
-            var materiaExistente = ObtenerPorCodigo(codigo);
+            var materiaExistente = await ObtenerPorCodigo(codigo);
             if (materiaExistente == null)
-            {
                 throw new Exception($"No se encontró materia con código {codigo}");
-            }
 
-            // Validación: Nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(materiaActualizada.Nombre))
-            {
                 throw new Exception("El nombre de la materia no puede estar vacío");
-            }
 
-            // Validación: Si cambia el código, debe ser único
-            if (!materiaActualizada.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase) &&
-                ObtenerPorCodigo(materiaActualizada.Codigo) != null)
+            // ✅ ARREGLADO: Comparación compatible con PostgreSQL
+            if (!materiaActualizada.Codigo.Equals(codigo, StringComparison.OrdinalIgnoreCase))
             {
-                throw new Exception($"Ya existe una materia con el código {materiaActualizada.Codigo}");
+                var otraMateria = await ObtenerPorCodigo(materiaActualizada.Codigo);
+                if (otraMateria != null)
+                    throw new Exception($"Ya existe una materia con el código {materiaActualizada.Codigo}");
             }
 
-            // Validación: Nuevo código debe ser válido
             if (!EsCodigoValido(materiaActualizada.Codigo))
-            {
                 throw new Exception("El código de la materia debe contener solo letras y números");
-            }
 
-            // Actualizar propiedades
             materiaExistente.Nombre = materiaActualizada.Nombre;
             materiaExistente.Codigo = materiaActualizada.Codigo;
             materiaExistente.Observacion = materiaActualizada.Observacion;
+
+            await _context.SaveChangesAsync();
+            return materiaExistente;
         }
 
         // DELETE: Eliminar materia
-        public void EliminarMateria(string codigo)
+        public async Task EliminarMateria(string codigo)
         {
-            var materia = ObtenerPorCodigo(codigo);
+            var materia = await ObtenerPorCodigo(codigo);
             if (materia == null)
-            {
                 throw new Exception($"No se encontró materia con código {codigo}");
-            }
 
-            _materias.Remove(materia);
+            _context.Materias.Remove(materia);
+            await _context.SaveChangesAsync();
         }
 
         // Método auxiliar para validar formato de código
         private bool EsCodigoValido(string codigo)
         {
-            // El código debe contener solo letras y números, sin espacios
             return !string.IsNullOrWhiteSpace(codigo) &&
                    codigo.All(c => char.IsLetterOrDigit(c));
+        }
+        // 🔥 MÉTODOS SÍNCRONOS PARA UNIT TESTS
+        public List<Materia> ObtenerTodasSync()
+        {
+            return _context.Materias.ToList();
+        }
+
+        public Materia? ObtenerPorCodigoSync(string codigo)
+        {
+            return _context.Materias
+                .Where(m => m.Codigo.ToLower() == codigo.ToLower())
+                .FirstOrDefault();
+        }
+
+        public Materia CrearMateriaSync(Materia materia)
+        {
+            if (string.IsNullOrWhiteSpace(materia.Codigo))
+                throw new Exception("El código de la materia no puede estar vacío");
+
+            if (string.IsNullOrWhiteSpace(materia.Nombre))
+                throw new Exception("El nombre de la materia no puede estar vacío");
+
+            var materiaExistente = ObtenerPorCodigoSync(materia.Codigo);
+            if (materiaExistente != null)
+                throw new Exception($"Ya existe una materia con el código {materia.Codigo}");
+
+            if (!EsCodigoValido(materia.Codigo))
+                throw new Exception("El código de la materia debe contener solo letras y números");
+
+            _context.Materias.Add(materia);
+            _context.SaveChanges();
+
+            return materia;
+
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using SysacadMejorado.Models;
+using SysAcadMejorado.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
 

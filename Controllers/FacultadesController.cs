@@ -10,49 +10,64 @@ namespace SysAcadMejorado.Controllers
     {
         private readonly FacultadService _facultadService;
 
-        public FacultadesController()
+        // ¡CAMBIO! Usar inyección de dependencias
+        public FacultadesController(FacultadService facultadService)
         {
-            _facultadService = new FacultadService();
+            _facultadService = facultadService;
         }
 
         // GET: api/facultades
         [HttpGet]
-        public IActionResult GetFacultades()
+        public async Task<ActionResult<List<Facultad>>> GetFacultades()
         {
-            var facultades = _facultadService.ObtenerTodas();
-            return Ok(facultades);
+            try
+            {
+                var facultades = await _facultadService.ObtenerTodas();
+                return Ok(facultades);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Error interno del servidor: " + ex.Message });
+            }
         }
 
         // GET: api/facultades/utn-frsr
         [HttpGet("{sigla}")]
-        public IActionResult GetFacultad(string sigla)
+        public async Task<ActionResult<Facultad>> GetFacultad(string sigla)
         {
             try
             {
-                var facultad = _facultadService.ObtenerPorSigla(sigla);
+                var facultad = await _facultadService.ObtenerPorSigla(sigla);
                 if (facultad == null)
-                    return NotFound();
+                    return NotFound(new { error = $"No se encontró facultad con sigla {sigla}" });
 
                 return Ok(facultad);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(500, new { error = "Error interno del servidor: " + ex.Message });
             }
         }
 
         // POST: api/facultades
         [HttpPost]
-        public IActionResult CrearFacultad([FromBody] Facultad nuevaFacultad)
+        public async Task<ActionResult<Facultad>> CrearFacultad([FromBody] Facultad nuevaFacultad)
         {
             try
             {
-                _facultadService.CrearFacultad(nuevaFacultad);
-                return Ok(new
-                {
-                    mensaje = "Facultad creada exitosamente",
-                    facultad = nuevaFacultad
-                });
+                if (!ModelState.IsValid)
+                    return BadRequest(new { error = "Datos de la facultad inválidos" });
+
+                var facultadCreada = await _facultadService.CrearFacultad(nuevaFacultad);
+
+                return CreatedAtAction(
+                    nameof(GetFacultad),
+                    new { sigla = facultadCreada.Sigla },
+                    new
+                    {
+                        mensaje = "Facultad creada exitosamente",
+                        facultad = facultadCreada
+                    });
             }
             catch (Exception ex)
             {
@@ -62,15 +77,19 @@ namespace SysAcadMejorado.Controllers
 
         // PUT: api/facultades/utn-frsr
         [HttpPut("{sigla}")]
-        public IActionResult ActualizarFacultad(string sigla, [FromBody] Facultad facultadActualizada)
+        public async Task<ActionResult<Facultad>> ActualizarFacultad(string sigla, [FromBody] Facultad facultadActualizada)
         {
             try
             {
-                _facultadService.ActualizarFacultad(sigla, facultadActualizada);
+                if (!ModelState.IsValid)
+                    return BadRequest(new { error = "Datos de la facultad inválidos" });
+
+                var facultadActualizadaResult = await _facultadService.ActualizarFacultad(sigla, facultadActualizada);
+
                 return Ok(new
                 {
                     mensaje = $"Facultad {sigla} actualizada exitosamente",
-                    facultad = facultadActualizada
+                    facultad = facultadActualizadaResult
                 });
             }
             catch (Exception ex)
@@ -81,11 +100,11 @@ namespace SysAcadMejorado.Controllers
 
         // DELETE: api/facultades/utn-frsr
         [HttpDelete("{sigla}")]
-        public IActionResult EliminarFacultad(string sigla)
+        public async Task<ActionResult> EliminarFacultad(string sigla)
         {
             try
             {
-                _facultadService.EliminarFacultad(sigla);
+                await _facultadService.EliminarFacultad(sigla);
                 return Ok(new
                 {
                     mensaje = $"Facultad {sigla} eliminada exitosamente"

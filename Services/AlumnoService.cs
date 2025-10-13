@@ -1,4 +1,4 @@
-﻿using SysacadMejorado.Models;
+﻿using SysAcadMejorado.Models;
 using Microsoft.EntityFrameworkCore;
 using SysAcadMejorado.Models;
 

@@ -10,49 +10,64 @@ namespace SysAcadMejorado.Controllers
     {
         private readonly MateriaService _materiaService;
 
-        public MateriasController()
+        // ¡CAMBIO! Usar inyección de dependencias
+        public MateriasController(MateriaService materiaService)
         {
-            _materiaService = new MateriaService();
+            _materiaService = materiaService;
         }
 
         // GET: api/materias
         [HttpGet]
-        public IActionResult GetMaterias()
+        public async Task<ActionResult<List<Materia>>> GetMaterias()
         {
-            var materias = _materiaService.ObtenerTodas();
-            return Ok(materias);
+            try
+            {
+                var materias = await _materiaService.ObtenerTodas();
+                return Ok(materias);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "Error interno del servidor: " + ex.Message });
+            }
         }
 
         // GET: api/materias/prog1
         [HttpGet("{codigo}")]
-        public IActionResult GetMateria(string codigo)
+        public async Task<ActionResult<Materia>> GetMateria(string codigo)
         {
             try
             {
-                var materia = _materiaService.ObtenerPorCodigo(codigo);
+                var materia = await _materiaService.ObtenerPorCodigo(codigo);
                 if (materia == null)
-                    return NotFound();
+                    return NotFound(new { error = $"No se encontró materia con código {codigo}" });
 
                 return Ok(materia);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { error = ex.Message });
+                return StatusCode(500, new { error = "Error interno del servidor: " + ex.Message });
             }
         }
 
         // POST: api/materias
         [HttpPost]
-        public IActionResult CrearMateria([FromBody] Materia nuevaMateria)
+        public async Task<ActionResult<Materia>> CrearMateria([FromBody] Materia nuevaMateria)
         {
             try
             {
-                _materiaService.CrearMateria(nuevaMateria);
-                return Ok(new
-                {
-                    mensaje = "Materia creada exitosamente",
-                    materia = nuevaMateria
-                });
+                if (!ModelState.IsValid)
+                    return BadRequest(new { error = "Datos de la materia inválidos" });
+
+                var materiaCreada = await _materiaService.CrearMateria(nuevaMateria);
+
+                return CreatedAtAction(
+                    nameof(GetMateria),
+                    new { codigo = materiaCreada.Codigo },
+                    new
+                    {
+                        mensaje = "Materia creada exitosamente",
+                        materia = materiaCreada
+                    });
             }
             catch (Exception ex)
             {
@@ -62,15 +77,19 @@ namespace SysAcadMejorado.Controllers
 
         // PUT: api/materias/prog1
         [HttpPut("{codigo}")]
-        public IActionResult ActualizarMateria(string codigo, [FromBody] Materia materiaActualizada)
+        public async Task<ActionResult<Materia>> ActualizarMateria(string codigo, [FromBody] Materia materiaActualizada)
         {
             try
             {
-                _materiaService.ActualizarMateria(codigo, materiaActualizada);
+                if (!ModelState.IsValid)
+                    return BadRequest(new { error = "Datos de la materia inválidos" });
+
+                var materiaActualizadaResult = await _materiaService.ActualizarMateria(codigo, materiaActualizada);
+
                 return Ok(new
                 {
                     mensaje = $"Materia {codigo} actualizada exitosamente",
-                    materia = materiaActualizada
+                    materia = materiaActualizadaResult
                 });
             }
             catch (Exception ex)
@@ -81,11 +100,11 @@ namespace SysAcadMejorado.Controllers
 
         // DELETE: api/materias/prog1
         [HttpDelete("{codigo}")]
-        public IActionResult EliminarMateria(string codigo)
+        public async Task<ActionResult> EliminarMateria(string codigo)
         {
             try
             {
-                _materiaService.EliminarMateria(codigo);
+                await _materiaService.EliminarMateria(codigo);
                 return Ok(new
                 {
                     mensaje = $"Materia {codigo} eliminada exitosamente"

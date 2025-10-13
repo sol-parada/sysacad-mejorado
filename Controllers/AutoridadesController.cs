@@ -10,12 +10,11 @@ namespace SysAcadMejorado.Controllers
     {
         private readonly AutoridadService _autoridadService;
 
-        public AutoridadesController()
+        public AutoridadesController(AutoridadService autoridadService)
         {
-            _autoridadService = new AutoridadService();
+            _autoridadService = autoridadService;
         }
 
-        // GET: api/autoridades
         [HttpGet]
         public IActionResult GetAutoridades()
         {
@@ -23,7 +22,6 @@ namespace SysAcadMejorado.Controllers
             return Ok(autoridades);
         }
 
-        // GET: api/autoridades/1
         [HttpGet("{id}")]
         public IActionResult GetAutoridad(int id)
         {
@@ -41,17 +39,20 @@ namespace SysAcadMejorado.Controllers
             }
         }
 
-        // POST: api/autoridades
         [HttpPost]
         public IActionResult CrearAutoridad([FromBody] Autoridad nuevaAutoridad)
         {
             try
             {
                 _autoridadService.CrearAutoridad(nuevaAutoridad);
+
+                // Recupera la autoridad recién creada con el Id asignado
+                var autoridadCreada = _autoridadService.ObtenerPorId(nuevaAutoridad.Id);
+
                 return Ok(new
                 {
                     mensaje = "Autoridad creada exitosamente",
-                    autoridad = nuevaAutoridad
+                    autoridad = autoridadCreada
                 });
             }
             catch (Exception ex)
@@ -60,7 +61,6 @@ namespace SysAcadMejorado.Controllers
             }
         }
 
-        // PUT: api/autoridades/1
         [HttpPut("{id}")]
         public IActionResult ActualizarAutoridad(int id, [FromBody] Autoridad autoridadActualizada)
         {
@@ -79,7 +79,6 @@ namespace SysAcadMejorado.Controllers
             }
         }
 
-        // DELETE: api/autoridades/1
         [HttpDelete("{id}")]
         public IActionResult EliminarAutoridad(int id)
         {
@@ -97,4 +96,4 @@ namespace SysAcadMejorado.Controllers
             }
         }
     }
-}
+}    

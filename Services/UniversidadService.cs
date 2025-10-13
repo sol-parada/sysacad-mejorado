@@ -7,17 +7,22 @@ namespace SysAcadMejorado.Services
 {
     public class UniversidadService
     {
-        private static readonly List<Universidad> _universidades = new List<Universidad>
+        private readonly List<Universidad> _universidades;
+
+        public UniversidadService()
         {
-            new Universidad {
-                Nombre = "Universidad Tecnológica Nacional",
-                Sigla = "UTN"
-            },
-            new Universidad {
-                Nombre = "Universidad de Buenos Aires",
-                Sigla = "UBA"
-            }
-        };
+            _universidades = new List<Universidad>
+            {
+                new Universidad {
+                    Nombre = "Universidad Tecnológica Nacional",
+                    Sigla = "UTN"
+                },
+                new Universidad {
+                    Nombre = "Universidad de Buenos Aires",
+                    Sigla = "UBA"
+                }
+            };
+        }
 
         // GET: Todas las universidades
         public List<Universidad> ObtenerTodas()
@@ -35,23 +40,14 @@ namespace SysAcadMejorado.Services
         // POST: Crear universidad
         public void CrearUniversidad(Universidad universidad)
         {
-            // Validación: Sigla no puede estar vacía
             if (string.IsNullOrWhiteSpace(universidad.Sigla))
-            {
                 throw new Exception("La sigla de la universidad no puede estar vacía");
-            }
 
-            // Validación: Nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(universidad.Nombre))
-            {
                 throw new Exception("El nombre de la universidad no puede estar vacío");
-            }
 
-            // Validación: No puede existir otra con misma sigla
             if (ObtenerPorSigla(universidad.Sigla) != null)
-            {
                 throw new Exception($"Ya existe una universidad con la sigla {universidad.Sigla}");
-            }
 
             _universidades.Add(universidad);
         }
@@ -61,15 +57,10 @@ namespace SysAcadMejorado.Services
         {
             var universidadExistente = ObtenerPorSigla(sigla);
             if (universidadExistente == null)
-            {
                 throw new Exception($"No se encontró universidad con sigla {sigla}");
-            }
 
-            // Validación: Nuevo nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(universidadActualizada.Nombre))
-            {
                 throw new Exception("El nombre de la universidad no puede estar vacío");
-            }
 
             universidadExistente.Nombre = universidadActualizada.Nombre;
             // Nota: No actualizamos la sigla porque es el identificador
@@ -80,9 +71,7 @@ namespace SysAcadMejorado.Services
         {
             var universidad = ObtenerPorSigla(sigla);
             if (universidad == null)
-            {
                 throw new Exception($"No se encontró universidad con sigla {sigla}");
-            }
 
             _universidades.Remove(universidad);
         }

@@ -1,7 +1,7 @@
 ﻿using SysAcadMejorado.Models;
 using System;
 using System.ComponentModel.DataAnnotations;
-namespace SysacadMejorado.Models
+namespace SysAcadMejorado.Models
 {
     public class Alumno
     {

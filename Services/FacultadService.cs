@@ -1,139 +1,95 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SysAcadMejorado.Models;
 
 namespace SysAcadMejorado.Services
 {
     public class FacultadService
     {
-        private static readonly List<Facultad> _facultades = new List<Facultad>
+        private readonly AppDbContext _context;
+
+        public FacultadService(AppDbContext context)
         {
-            new Facultad
-            {
-                Nombre = "Facultad Regional San Rafael",
-                Abreviatura = "FRSR",
-                Directorio = "directorio_frsr",
-                Sigla = "UTN-FRSR",
-                CodigoPostal = "5600",
-                Ciudad = "San Rafael",
-                Domicilio = "Calle Ejemplo 123",
-                Telefono = "0260-1234567",
-                Contacto = "Secretaría Académica",
-                Email = "contacto@frut.utn.edu.ar"
-            },
-            new Facultad
-            {
-                Nombre = "Facultad Regional Mendoza",
-                Abreviatura = "FRM",
-                Directorio = "directorio_frm",
-                Sigla = "UTN-FRM",
-                CodigoPostal = "5500",
-                Ciudad = "Mendoza",
-                Domicilio = "Avenida Principal 456",
-                Telefono = "0261-9876543",
-                Contacto = "Informes",
-                Email = "informes@frm.utn.edu.ar"
-            }
-        };
+            _context = context;
+        }
 
         // GET: Todas las facultades
-        public List<Facultad> ObtenerTodas()
+        public async Task<List<Facultad>> ObtenerTodas()
         {
-            return _facultades;
+            return await _context.Facultades.ToListAsync();
         }
 
-        // GET: Facultad por sigla
-        public Facultad? ObtenerPorSigla(string sigla)
+        // GET: Facultad por sigla - ✅ ARREGLADO para PostgreSQL
+        public async Task<Facultad?> ObtenerPorSigla(string sigla)
         {
-            return _facultades.FirstOrDefault(f =>
-                f.Sigla.Equals(sigla, StringComparison.OrdinalIgnoreCase));
+            return await _context.Facultades
+                .Where(f => f.Sigla.ToLower() == sigla.ToLower())
+                .FirstOrDefaultAsync();
         }
 
-        // GET: Buscar facultades por ciudad
-        public List<Facultad> BuscarPorCiudad(string ciudad)
+        // GET: Buscar facultades por ciudad - ✅ ARREGLADO para PostgreSQL
+        public async Task<List<Facultad>> BuscarPorCiudad(string ciudad)
         {
-            return _facultades.Where(f =>
-                f.Ciudad.Contains(ciudad, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await _context.Facultades
+                .Where(f => f.Ciudad.ToLower().Contains(ciudad.ToLower()))
+                .ToListAsync();
         }
 
         // POST: Crear facultad
-        public void CrearFacultad(Facultad facultad)
+        public async Task<Facultad> CrearFacultad(Facultad facultad)
         {
-            // Validación: Sigla no puede estar vacía
             if (string.IsNullOrWhiteSpace(facultad.Sigla))
-            {
                 throw new Exception("La sigla de la facultad no puede estar vacía");
-            }
 
-            // Validación: Nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(facultad.Nombre))
-            {
                 throw new Exception("El nombre de la facultad no puede estar vacío");
-            }
 
-            // Validación: Ciudad no puede estar vacía
-            if (string.IsNullOrWhiteSpace(facultad.Ciudad))
-            {
-                throw new Exception("La ciudad de la facultad no puede estar vacía");
-            }
-
-            // Validación: Sigla debe ser única
-            if (ObtenerPorSigla(facultad.Sigla) != null)
-            {
-                throw new Exception($"Ya existe una facultad con la sigla {facultad.Sigla}");
-            }
-
-            // Validación: Email debe tener formato válido (si se proporciona)
-            if (!string.IsNullOrWhiteSpace(facultad.Email) && !facultad.Email.Contains("@"))
-            {
-                throw new Exception("El email de la facultad debe tener un formato válido");
-            }
-
-            // Validación: Abreviatura no puede estar vacía
             if (string.IsNullOrWhiteSpace(facultad.Abreviatura))
-            {
                 throw new Exception("La abreviatura de la facultad no puede estar vacía");
-            }
 
-            _facultades.Add(facultad);
+            if (string.IsNullOrWhiteSpace(facultad.Ciudad))
+                throw new Exception("La ciudad de la facultad no puede estar vacía");
+
+            var facultadExistente = await ObtenerPorSigla(facultad.Sigla);
+            if (facultadExistente != null)
+                throw new Exception($"Ya existe una facultad con la sigla {facultad.Sigla}");
+
+            if (!string.IsNullOrWhiteSpace(facultad.Email) && !facultad.Email.Contains("@"))
+                throw new Exception("El email de la facultad debe tener un formato válido");
+
+            _context.Facultades.Add(facultad);
+            await _context.SaveChangesAsync();
+
+            return facultad;
         }
 
         // PUT: Actualizar facultad
-        public void ActualizarFacultad(string sigla, Facultad facultadActualizada)
+        public async Task<Facultad> ActualizarFacultad(string sigla, Facultad facultadActualizada)
         {
-            var facultadExistente = ObtenerPorSigla(sigla);
+            var facultadExistente = await ObtenerPorSigla(sigla);
             if (facultadExistente == null)
-            {
                 throw new Exception($"No se encontró facultad con sigla {sigla}");
-            }
 
-            // Validación: Nombre no puede estar vacío
             if (string.IsNullOrWhiteSpace(facultadActualizada.Nombre))
-            {
                 throw new Exception("El nombre de la facultad no puede estar vacío");
-            }
 
-            // Validación: Ciudad no puede estar vacía
-            if (string.IsNullOrWhiteSpace(facultadActualizada.Ciudad))
-            {
-                throw new Exception("La ciudad de la facultad no puede estar vacía");
-            }
-
-            // Validación: Si cambia la sigla, debe ser única
-            if (!facultadActualizada.Sigla.Equals(sigla, StringComparison.OrdinalIgnoreCase) &&
-                ObtenerPorSigla(facultadActualizada.Sigla) != null)
-            {
-                throw new Exception($"Ya existe una facultad con la sigla {facultadActualizada.Sigla}");
-            }
-
-            // Validación: Abreviatura no puede estar vacía
             if (string.IsNullOrWhiteSpace(facultadActualizada.Abreviatura))
-            {
                 throw new Exception("La abreviatura de la facultad no puede estar vacía");
+
+            if (string.IsNullOrWhiteSpace(facultadActualizada.Ciudad))
+                throw new Exception("La ciudad de la facultad no puede estar vacía");
+
+            // ✅ ARREGLADO: Comparación compatible con PostgreSQL
+            if (!facultadActualizada.Sigla.Equals(sigla, StringComparison.OrdinalIgnoreCase))
+            {
+                var otraFacultad = await ObtenerPorSigla(facultadActualizada.Sigla);
+                if (otraFacultad != null)
+                    throw new Exception($"Ya existe una facultad con la sigla {facultadActualizada.Sigla}");
             }
 
-            // Actualizar propiedades
             facultadExistente.Nombre = facultadActualizada.Nombre;
             facultadExistente.Abreviatura = facultadActualizada.Abreviatura;
             facultadExistente.Directorio = facultadActualizada.Directorio;
@@ -144,25 +100,28 @@ namespace SysAcadMejorado.Services
             facultadExistente.Telefono = facultadActualizada.Telefono;
             facultadExistente.Contacto = facultadActualizada.Contacto;
             facultadExistente.Email = facultadActualizada.Email;
+
+            await _context.SaveChangesAsync();
+            return facultadExistente;
         }
 
         // DELETE: Eliminar facultad
-        public void EliminarFacultad(string sigla)
+        public async Task EliminarFacultad(string sigla)
         {
-            var facultad = ObtenerPorSigla(sigla);
+            var facultad = await ObtenerPorSigla(sigla);
             if (facultad == null)
-            {
                 throw new Exception($"No se encontró facultad con sigla {sigla}");
-            }
 
-            _facultades.Remove(facultad);
+            _context.Facultades.Remove(facultad);
+            await _context.SaveChangesAsync();
         }
 
-        // GET: Obtener facultades por universidad (basado en sigla)
-        public List<Facultad> ObtenerPorUniversidad(string siglaUniversidad)
+        // GET: Obtener facultades por universidad - ✅ ARREGLADO para PostgreSQL
+        public async Task<List<Facultad>> ObtenerPorUniversidad(string siglaUniversidad)
         {
-            return _facultades.Where(f =>
-                f.Sigla.StartsWith(siglaUniversidad, StringComparison.OrdinalIgnoreCase)).ToList();
+            return await _context.Facultades
+                .Where(f => f.Sigla.ToLower().StartsWith(siglaUniversidad.ToLower()))
+                .ToListAsync();
         }
     }
 }

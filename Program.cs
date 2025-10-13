@@ -9,20 +9,20 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// CONFIGURAR POSTGRESQL CON LOGGING DETALLADO
+// Configurar PostgreSQL con logging detallado
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
-           .EnableSensitiveDataLogging()  // ← AGREGAR ESTO
-           .EnableDetailedErrors());      // ← Y ESTO
+           .EnableSensitiveDataLogging()
+           .EnableDetailedErrors());
 
-// REGISTRAR TUS SERVICES
+// Registrar tus servicios (solo uno por tipo, usa Scoped para servicios con DbContext)
+builder.Services.AddScoped<AutoridadService>();
 builder.Services.AddScoped<AlumnoService>();
 builder.Services.AddScoped<UniversidadService>();
 builder.Services.AddScoped<FacultadService>();
-builder.Services.AddScoped<AutoridadService>();
 builder.Services.AddScoped<MateriaService>();
 
-// CONFIGURAR LOGGING
+// Configurar logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
@@ -40,3 +40,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+public partial class Program { }

@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9 d17.14
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SysAcadMejorado", "SysAcadMejorado.csproj", "{54F0280F-AE51-6BFE-770A-7C510A77CA72}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SysAcadMejorado.Tests", "..\SysAcadMejorado.Tests\SysAcadMejorado.Tests.csproj", "{FFF0FDED-8750-4397-A8F6-B07459E4599C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{54F0280F-AE51-6BFE-770A-7C510A77CA72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{54F0280F-AE51-6BFE-770A-7C510A77CA72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{54F0280F-AE51-6BFE-770A-7C510A77CA72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFF0FDED-8750-4397-A8F6-B07459E4599C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFF0FDED-8750-4397-A8F6-B07459E4599C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFF0FDED-8750-4397-A8F6-B07459E4599C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFF0FDED-8750-4397-A8F6-B07459E4599C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

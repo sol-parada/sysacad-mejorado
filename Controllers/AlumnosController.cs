@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SysacadMejorado.Models;
+using SysAcadMejorado.Models;
 using SysAcadMejorado.Models;
 using SysAcadMejorado.Services;
 
